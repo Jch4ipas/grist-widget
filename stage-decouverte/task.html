@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Liste des stagiaires</title>
+  <link rel="stylesheet" href="https://web2018.epfl.ch/8.3.0/css/elements.min.css">
+  <link rel="stylesheet" href="css/declprofs.css">
+  <script src="https://web2018.epfl.ch/8.3.0/js/elements.min.js"></script>
+</head>
+<body>
+  <header class="header header-light my-2">
+    <div class="header-light-content">
+      <a class="logo" href="https://www.epfl.ch"><img src="img/epfl_small.png" alt="Logo EPFL" class="img-fluid"></a>
+      <p class="site-title"><a href="#">Liste des stagiaires</a></p>
+      <nav class="nav-lang nav-lang-short ml-auto pr-lg-5"></nav>
+    </div>
+  </header>
+
+  <div class="breadcrumb-container pb-0 mb-0">
+    <nav aria-label="breadcrumb" class="breadcrumb-wrapper" id="breadcrumb-wrapper"></nav>
+  </div>
+  <div class="main-container m-4">
+    <div class="my-1" style="position: relative; max-width: 300px;">
+      <input type="text" id="searchInput" placeholder="Rechercher par nom..." style="padding-left: 30px; box-sizing: border-box;">
+      <svg class="icon" aria-hidden="true" 
+        style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; pointer-events: none;">
+        <use xlink:href="#user"></use>
+      </svg>
+    </div>
+    <div class="my-1" style="position: relative; max-width: 300px;">
+      <input type="date" id="dateInput" placeholder="Filtrer par date du stage" style="padding-left: 30px; box-sizing: border-box;">
+      <svg class="icon" aria-hidden="true" 
+        style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; pointer-events: none;">
+        <use xlink:href="#calendar"></use>
+      </svg>
+    </div>
+
+    <div>
+      <table id="table" class="table table-boxed"></table>
+    </div>
+  </div>
+
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+  <script>
+    const WEBHOOK_URL = "https://n8n.fsd.epfl.ch/webhook-test/631a3f12-3b64-4853-84da-79774b057273";
+
+    const searchInput = document.getElementById('searchInput');
+    const dateInput = document.getElementById('dateInput');
+    let allRecords = [];
+  
+    window.grist.ready({ requiredAccess: 'full' });
+
+    function calculateAge(birthDate) {
+      if (!birthDate) return '';
+      const birth = new Date(birthDate);
+      const today = new Date();
+      let age = today.getFullYear() - birth.getFullYear();
+      const monthDiff = today.getMonth() - birth.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+        age--;
+      }
+      return age;
+    }
+
+    async function sendEmailWebhook(record) {
+      try {
+        const response = await fetch(WEBHOOK_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            prenom: record['Prénom et nom: First'] || '',
+            nom: record['Prénom et nom: Last'] || '',
+            email: record.Email || '',
+            dateStage: record['Date du stage'] || '',
+            id: record.id
+          })
+        });
+        
+        if (response.ok) {
+          alert(`Email envoyé à ${record['Prénom et nom: First']} ${record['Prénom et nom: Last']}`);
+        } else {
+          alert('Erreur lors de l\'envoi de l\'email');
+        }
+      } catch (error) {
+        console.error('Erreur webhook:', error);
+        alert('Erreur de connexion au webhook');
+      }
+    }
+
+    function renderTable(records) {
+      const table = document.getElementById('table');
+
+      while (table.rows.length > 0) table.deleteRow(0);
+
+      if (!records || records.length === 0) {
+        const row = table.insertRow();
+        const cell = row.insertCell();
+        cell.colSpan = 5;
+        cell.textContent = 'Aucun stagiaire trouvé.';
+        cell.style.textAlign = 'center';
+        return;
+      }
+      
+      const header = table.createTHead();
+      const headerRow = header.insertRow();
+      
+      ['Prénom', 'Nom', 'Date du stage', 'Âge', 'Actions'].forEach(title => {
+        const th = document.createElement('th');
+        th.textContent = title;
+        headerRow.appendChild(th);
+      });
+
+      for (const rec of records) {
+        const row = table.insertRow();
+        const prenomCell = row.insertCell();
+        prenomCell.textContent = rec['Prénom et nom: First'] || '';
+
+        const nomCell = row.insertCell();
+        nomCell.textContent = rec['Prénom et nom: Last'] || '';
+
+        const dateCell = row.insertCell();
+        dateCell.textContent = rec['Date du stage'] || '';
+
+        const ageCell = row.insertCell();
+        const age = calculateAge(rec['Date de naissance']);
+        ageCell.textContent = age ? `${age} ans` : '';
+
+        const actionsCell = row.insertCell();
+
+        const emailBtn = document.createElement('button');
+        emailBtn.innerHTML = `
+          <svg class="icon" aria-hidden="true">
+            <use xlink:href="#mail"></use>
+          </svg>
+        `;
+        emailBtn.title = "Envoyer un email";
+        emailBtn.style.border = 'none';
+        emailBtn.style.cursor = 'pointer';
+        emailBtn.addEventListener('click', async () => {
+          const confirmSend = confirm(`Envoyer un email à ${rec['Prénom et nom: First']} ${rec['Prénom et nom: Last']} ?`);
+          if (confirmSend) {
+            await sendEmailWebhook(rec);
+          }
+        });
+        actionsCell.appendChild(emailBtn);
+      }
+    }
+    
+    function applyFilters() {
+      const nameQuery = searchInput.value.trim().toLowerCase();
+      const dateQuery = dateInput.value.trim();
+
+      let filtered = allRecords;
+
+      filtered = filtered.filter(rec => rec['Date du stage']);
+
+      if (nameQuery) {
+        filtered = filtered.filter(rec => {
+          const prenom = (rec['Prénom et nom: First'] || '').toLowerCase();
+          const nom = (rec['Prénom et nom: Last'] || '').toLowerCase();
+          return prenom.includes(nameQuery) || nom.includes(nameQuery);
+        });
+      }
+      if (dateQuery) {
+        filtered = filtered.filter(rec => {
+          return rec['Date du stage'] === dateQuery;
+        });
+      }
+
+      renderTable(filtered);
+    }
+    
+    window.grist.onRecords(records => {
+      allRecords = records;
+      applyFilters();
+    });
+
+    searchInput.addEventListener('input', applyFilters);
+    dateInput.addEventListener('input', applyFilters);
+  </script>
+  
+  <script>
+    svgPath = 'https://web2018.epfl.ch/8.3.0/icons/icons.svg';
+    featherSvgPath = 'https://web2018.epfl.ch/8.3.0/icons/feather-sprite.svg';
+  </script>
+</body>
+</html>
