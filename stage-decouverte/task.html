@@ -173,9 +173,13 @@
 					return rec['Date du stage'] === dateQuery;
 				});
 			}
-
-			renderTable(filtered);
+			return filtered;
 		}
+
+		const eventRenderTable = () => {
+			const filtered = applyFilters();
+			renderTable(filtered);
+		};
 
 		window.grist.onRecords(records => {
 			console.log('Nombre de records reçus:', records.length);
@@ -184,11 +188,12 @@
 			if (records.length > 0) {
 				console.log('Colonnes disponibles:', Object.keys(records[0]));
 			}
-			// applyFilters();
+			const filtered = applyFilters();
+			renderTable(allRecords); // Devrait être filtered mais juste un test actuellement
 		});
 
-		searchInput.addEventListener('input', applyFilters);
-		dateInput.addEventListener('input', applyFilters);
+		searchInput.addEventListener('input', eventRenderTable);
+		dateInput.addEventListener('input', eventRenderTable);
 	</script>
 
 	<script>
