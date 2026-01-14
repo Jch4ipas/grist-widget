@@ -5,7 +5,6 @@
 	<meta charset="utf-8">
 	<title>Liste des stagiaires</title>
 	<link rel="stylesheet" href="https://web2018.epfl.ch/8.3.0/css/elements.min.css">
-	<link rel="stylesheet" href="css/declprofs.css">
 	<script src="https://web2018.epfl.ch/8.3.0/js/elements.min.js"></script>
 </head>
 
@@ -75,16 +74,16 @@
 						'Content-Type': 'application/json',
 					},
 					body: JSON.stringify({
-						prenom: record['Prénom et nom: First'] || '',
-						nom: record['Prénom et nom: Last'] || '',
+						prenom: record['Prenom_et_nom_First'] || '',
+						nom: record['Prenom_et_nom_Last'] || '',
 						email: record.Email || '',
-						dateStage: record['Date du stage'] || '',
+						dateStage: record['Date_du_stage'] || '',
 						id: record.id
 					})
 				});
 
 				if (response.ok) {
-					alert(`Email envoyé à ${record['Prénom et nom: First']} ${record['Prénom et nom: Last']}`);
+					alert(`Email envoyé à ${record['Prenom_et_nom_First']} ${record['Prenom_et_nom_Last']}`);
 				} else {
 					alert('Erreur lors de l\'envoi de l\'email');
 				}
@@ -120,16 +119,16 @@
 			for (const rec of records) {
 				const row = table.insertRow();
 				const prenomCell = row.insertCell();
-				prenomCell.textContent = rec['Prénom et nom: First'] || '';
+				prenomCell.textContent = rec['Prenom_et_nom_First'] || '';
 
 				const nomCell = row.insertCell();
-				nomCell.textContent = rec['Prénom et nom: Last'] || '';
+				nomCell.textContent = rec['Prenom_et_nom_Last'] || '';
 
 				const dateCell = row.insertCell();
-				dateCell.textContent = rec['Date du stage'] || '';
+				dateCell.textContent = rec['Date_du_stage'] || '';
 
 				const ageCell = row.insertCell();
-				const age = calculateAge(rec['Date de naissance']);
+				const age = calculateAge(rec['Date_de_naissance']);
 				ageCell.textContent = age ? `${age} ans` : '';
 
 				const actionsCell = row.insertCell();
@@ -144,7 +143,7 @@
 				emailBtn.style.border = 'none';
 				emailBtn.style.cursor = 'pointer';
 				emailBtn.addEventListener('click', async () => {
-					const confirmSend = confirm(`Envoyer un email à ${rec['Prénom et nom: First']} ${rec['Prénom et nom: Last']} ?`);
+					const confirmSend = confirm(`Envoyer un email à ${rec['Prenom_et_nom_First']} ${rec['Prenom_et_nom_Last']} ?`);
 					if (confirmSend) {
 						await sendEmailWebhook(rec);
 					}
@@ -159,18 +158,18 @@
 
 			let filtered = allRecords;
 
-			filtered = filtered.filter(rec => rec['Date du stage']);
+			filtered = filtered.filter(rec => rec['Date_du_stage']);
 
 			if (nameQuery) {
 				filtered = filtered.filter(rec => {
-					const prenom = (rec['Prénom et nom: First'] || '').toLowerCase();
-					const nom = (rec['Prénom et nom: Last'] || '').toLowerCase();
+					const prenom = (rec['Prenom_et_nom_First'] || '').toLowerCase();
+					const nom = (rec['Prenom_et_nom_Last'] || '').toLowerCase();
 					return prenom.includes(nameQuery) || nom.includes(nameQuery);
 				});
 			}
 			if (dateQuery) {
 				filtered = filtered.filter(rec => {
-					return rec['Date du stage'] === dateQuery;
+					return rec['Date_du_stage'] === dateQuery;
 				});
 			}
 			return filtered;
@@ -189,7 +188,8 @@
 				console.log('Colonnes disponibles:', Object.keys(records[0]));
 			}
 			const filtered = applyFilters();
-			renderTable(filtered); // Devrait être filtered mais juste un test actuellement
+			// renderTable(allRecords); // avec tout
+			renderTable(filtered); // avec filtre
 		});
 
 		searchInput.addEventListener('input', eventRenderTable);
