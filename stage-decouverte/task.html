@@ -66,20 +66,14 @@
 			return age;
 		}
 
-		async function sendEmailWebhook(record) {
+		async function sendEmailWebhook(body) {
 			try {
 				const response = await fetch(WEBHOOK_URL, {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
 					},
-					body: JSON.stringify({
-						prenom: record['Prenom_et_nom_First'] || '',
-						nom: record['Prenom_et_nom_Last'] || '',
-						email: record.Email || '',
-						dateStage: record['Date_du_stage'] || '',
-						id: record.id
-					})
+					body: JSON.stringify(body)
 				});
 
 				if (response.ok) {
@@ -110,7 +104,7 @@
 			const header = table.createTHead();
 			const headerRow = header.insertRow();
 
-			['Prénom', 'Nom', 'Date du stage', 'Âge', 'Actions'].forEach(title => {
+			['Prénom', 'Nom', 'Date du stage', 'Email', 'Âge', 'Actions'].forEach(title => {
 				const th = document.createElement('th');
 				th.textContent = title;
 				headerRow.appendChild(th);
@@ -127,34 +121,99 @@
 				const dateCell = row.insertCell();
 				dateCell.textContent = rec['Date_du_stage'] || '';
 
+				const emailCell = row.insertCell();
+				emailCell.textContent = rec.Email || '';
+
 				const ageCell = row.insertCell();
 				const age = calculateAge(rec['Date_de_naissance']);
 				ageCell.textContent = age ? `${age} ans` : '';
 
 				const actionsCell = row.insertCell();
 
-				const emailBtn = document.createElement('button');
-				emailBtn.innerHTML = `
+				const emailBtnInvite = document.createElement('button');
+				emailBtnInvite.innerHTML = `
           <svg class="icon" aria-hidden="true">
             <use xlink:href="#mail"></use>
           </svg>
         `;
-				emailBtn.title = "Envoyer un email";
-				emailBtn.style.border = 'none';
-				emailBtn.style.cursor = 'pointer';
-				emailBtn.addEventListener('click', async () => {
-					const confirmSend = confirm(`Envoyer un email à ${rec['Prenom_et_nom_First']} ${rec['Prenom_et_nom_Last']} ?`);
+				emailBtnInvite.title = "Envoyer email invitation";
+				emailBtnInvite.style.border = 'none';
+				emailBtnInvite.style.cursor = 'pointer';
+				emailBtnInvite.style.marginRight = '5px';
+				emailBtnInvite.addEventListener('click', async () => {
+					const confirmSend = confirm(`Envoyer invitation à ${rec.Email} ?`);
 					if (confirmSend) {
-						await sendEmailWebhook(rec);
+						const body = {
+							type: 'invitation',
+							prenom: rec['Prenom_et_nom_First'] || '',
+							nom: rec['Prenom_et_nom_Last'] || '',
+							email: rec.Email || '',
+							dateStage: rec['Date_du_stage'] || '',
+							id: rec.id
+						};
+						await sendEmailWebhook(body);
 					}
 				});
-				actionsCell.appendChild(emailBtn);
+				actionsCell.appendChild(emailBtnInvite);
+
+				const emailBtnConfirm = document.createElement('button');
+				emailBtnConfirm.innerHTML = `
+          <svg class="icon" aria-hidden="true">
+            <use xlink:href="#check"></use>
+          </svg>
+        `;
+				emailBtnConfirm.title = "Envoyer email confirmation";
+				emailBtnConfirm.style.border = 'none';
+				emailBtnConfirm.style.cursor = 'pointer';
+				emailBtnConfirm.style.marginRight = '5px';
+				emailBtnConfirm.addEventListener('click', async () => {
+					const confirmSend = confirm(`Envoyer confirmation à ${rec.Email} ?`);
+					if (confirmSend) {
+						const body = {
+							type: 'confirmation',
+							prenom: rec['Prenom_et_nom_First'] || '',
+							nom: rec['Prenom_et_nom_Last'] || '',
+							email: rec.Email || '',
+							dateStage: rec['Date_du_stage'] || '',
+							id: rec.id
+						};
+						await sendEmailWebhook(body);
+					}
+				});
+				actionsCell.appendChild(emailBtnConfirm);
+
+				const emailBtnRapport = document.createElement('button');
+				emailBtnRapport.innerHTML = `
+          <svg class="icon" aria-hidden="true">
+            <use xlink:href="#file"></use>
+          </svg>
+        `;
+				emailBtnRapport.title = "Envoyer le rapport de stage";
+				emailBtnRapport.style.border = 'none';
+				emailBtnRapport.style.cursor = 'pointer';
+				emailBtnRapport.addEventListener('click', async () => {
+					const confirmSend = confirm(`Envoyer rapport à ${rec.Email} ?`);
+					if (confirmSend) {
+						const body = {
+							type: 'rapport',
+							prenom: rec['Prenom_et_nom_First'] || '',
+							nom: rec['Prenom_et_nom_Last'] || '',
+							email: rec.Email || '',
+							dateStage: rec['Date_du_stage'] || '',
+							id: rec.id
+						};
+						await sendEmailWebhook(body);
+					}
+				});
+				actionsCell.appendChild(emailBtnRapport);
 			}
 		}
 
 		function applyFilters() {
 			const nameQuery = searchInput.value.trim().toLowerCase();
 			const dateQuery = dateInput.value.trim();
+
+			console.log('Filtre date appliqué:', dateQuery);
 
 			let filtered = allRecords;
 
@@ -169,7 +228,10 @@
 			}
 			if (dateQuery) {
 				filtered = filtered.filter(rec => {
-					return rec['Date_du_stage'] === dateQuery;
+					const recordDate = String(rec['Date_du_stage']).trim();
+					const searchDate = String(dateQuery).trim();
+					const match = recordDate === searchDate;
+					return match;
 				});
 			}
 			return filtered;
