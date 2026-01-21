@@ -66,7 +66,7 @@
 			return age;
 		}
 
-		async function sendEmailWebhook(body) {
+		async function sendEmailWebhook(body, recordId_updateFieldInGrist, fieldName_updateFieldInGrist, value_updateFieldInGrist) {
 			try {
 				const response = await fetch(WEBHOOK_URL, {
 					method: 'POST',
@@ -77,13 +77,25 @@
 				});
 
 				if (response.ok) {
-					alert(`Email envoyé à ${record['Prenom_et_nom_First']} ${record['Prenom_et_nom_Last']}`);
+					await updateFieldInGrist(recordId_updateFieldInGrist, fieldName_updateFieldInGrist, value_updateFieldInGrist);
+					alert(`Email envoyé à ${body.prenom} ${body.nom}`);
 				} else {
 					alert('Erreur lors de l\'envoi de l\'email');
 				}
 			} catch (error) {
 				console.error('Erreur webhook:', error);
 				alert('Erreur de connexion au webhook');
+			}
+		}
+
+		async function updateFieldInGrist(recordId, fieldName, value) {
+			try {
+				await window.grist.docApi.applyUserActions([
+					['UpdateRecord', 'Stages_Extraction_WPForms', recordId, { [fieldName]: value }]
+				]);
+				console.log(`${fieldName} mis à jour pour le record ${recordId}`);
+			} catch (error) {
+				console.error('Erreur lors de la mise à jour du champ:', error);
 			}
 		}
 
@@ -104,7 +116,7 @@
 			const header = table.createTHead();
 			const headerRow = header.insertRow();
 
-			['Prénom', 'Nom', 'Date du stage', 'Email', 'Âge', 'Actions'].forEach(title => {
+			['Prénom', 'Nom', 'Date du stage', 'Email', 'Âge', 'Invitation', 'Confirmation', 'Rapport', 'Actions'].forEach(title => {
 				const th = document.createElement('th');
 				th.textContent = title;
 				headerRow.appendChild(th);
@@ -128,86 +140,104 @@
 				const age = calculateAge(rec['Date_de_naissance']);
 				ageCell.textContent = age ? `${age} ans` : '';
 
-				const actionsCell = row.insertCell();
+			const invitationStatusCell = row.insertCell();
+			invitationStatusCell.textContent = rec['isInvitationSent'] ? '✓' : '✗';
+			invitationStatusCell.style.textAlign = 'center';
+			invitationStatusCell.style.fontWeight = 'bold';
+			invitationStatusCell.style.color = rec['isInvitationSent'] ? 'green' : 'red';
 
-				const emailBtnInvite = document.createElement('button');
-				emailBtnInvite.innerHTML = `
+			const confirmationStatusCell = row.insertCell();
+			confirmationStatusCell.textContent = rec['isConfirmationSent'] ? '✓' : '✗';
+			confirmationStatusCell.style.textAlign = 'center';
+			confirmationStatusCell.style.fontWeight = 'bold';
+			confirmationStatusCell.style.color = rec['isConfirmationSent'] ? 'green' : 'red';
+
+			const rapportStatusCell = row.insertCell();
+			rapportStatusCell.textContent = rec['isRapportSent'] ? '✓' : '✗';
+			rapportStatusCell.style.textAlign = 'center';
+			rapportStatusCell.style.fontWeight = 'bold';
+			rapportStatusCell.style.color = rec['isRapportSent'] ? 'green' : 'red';
+
+			const actionsCell = row.insertCell();
+
+			const emailBtnInvite = document.createElement('button');
+			emailBtnInvite.innerHTML = `
           <svg class="icon" aria-hidden="true">
             <use xlink:href="#mail"></use>
           </svg>
         `;
-				emailBtnInvite.title = "Envoyer email invitation";
-				emailBtnInvite.style.border = 'none';
-				emailBtnInvite.style.cursor = 'pointer';
-				emailBtnInvite.style.marginRight = '5px';
-				emailBtnInvite.addEventListener('click', async () => {
-					const confirmSend = confirm(`Envoyer invitation à ${rec.Email} ?`);
-					if (confirmSend) {
-						const body = {
-							type: 'invitation',
-							prenom: rec['Prenom_et_nom_First'] || '',
-							nom: rec['Prenom_et_nom_Last'] || '',
-							email: rec.Email || '',
-							dateStage: rec['Date_du_stage'] || '',
-							id: rec.id
-						};
-						await sendEmailWebhook(body);
-					}
-				});
-				actionsCell.appendChild(emailBtnInvite);
+			emailBtnInvite.title = "Envoyer email invitation";
+			emailBtnInvite.style.border = 'none';
+			emailBtnInvite.style.cursor = 'pointer';
+			emailBtnInvite.style.marginRight = '5px';
+			emailBtnInvite.addEventListener('click', async () => {
+				const confirmSend = confirm(`Envoyer invitation à ${rec.Email} ?`);
+				if (confirmSend) {
+					const body = {
+						type: 'invitation',
+						prenom: rec['Prenom_et_nom_First'] || '',
+						nom: rec['Prenom_et_nom_Last'] || '',
+						email: rec.Email || '',
+						dateStage: rec['Date_du_stage'] || '',
+						id: rec.id
+					};
+					await sendEmailWebhook(body, rec.id, 'isInvitationSent', true);
+				}
+			});
+			actionsCell.appendChild(emailBtnInvite);
 
-				const emailBtnConfirm = document.createElement('button');
-				emailBtnConfirm.innerHTML = `
+			const emailBtnConfirm = document.createElement('button');
+			emailBtnConfirm.innerHTML = `
           <svg class="icon" aria-hidden="true">
             <use xlink:href="#check"></use>
           </svg>
         `;
-				emailBtnConfirm.title = "Envoyer email confirmation";
-				emailBtnConfirm.style.border = 'none';
-				emailBtnConfirm.style.cursor = 'pointer';
-				emailBtnConfirm.style.marginRight = '5px';
-				emailBtnConfirm.addEventListener('click', async () => {
-					const confirmSend = confirm(`Envoyer confirmation à ${rec.Email} ?`);
-					if (confirmSend) {
-						const body = {
-							type: 'confirmation',
-							prenom: rec['Prenom_et_nom_First'] || '',
-							nom: rec['Prenom_et_nom_Last'] || '',
-							email: rec.Email || '',
-							dateStage: rec['Date_du_stage'] || '',
-							id: rec.id
-						};
-						await sendEmailWebhook(body);
-					}
-				});
-				actionsCell.appendChild(emailBtnConfirm);
+			emailBtnConfirm.title = "Envoyer email confirmation";
+			emailBtnConfirm.style.border = 'none';
+			emailBtnConfirm.style.cursor = 'pointer';
+			emailBtnConfirm.style.marginRight = '5px';
+			emailBtnConfirm.addEventListener('click', async () => {
+				const confirmSend = confirm(`Envoyer confirmation à ${rec.Email} ?`);
+				if (confirmSend) {
+					const body = {
+						type: 'confirmation',
+						prenom: rec['Prenom_et_nom_First'] || '',
+						nom: rec['Prenom_et_nom_Last'] || '',
+						email: rec.Email || '',
+						dateStage: rec['Date_du_stage'] || '',
+						id: rec.id
+					};
+					await sendEmailWebhook(body, rec.id, 'isConfirmationSent', true);
+				}
+			});
+			actionsCell.appendChild(emailBtnConfirm);
 
-				const emailBtnRapport = document.createElement('button');
-				emailBtnRapport.innerHTML = `
+			const emailBtnRapport = document.createElement('button');
+			emailBtnRapport.innerHTML = `
           <svg class="icon" aria-hidden="true">
             <use xlink:href="#file"></use>
           </svg>
         `;
-				emailBtnRapport.title = "Envoyer le rapport de stage";
-				emailBtnRapport.style.border = 'none';
-				emailBtnRapport.style.cursor = 'pointer';
-				emailBtnRapport.addEventListener('click', async () => {
-					const confirmSend = confirm(`Envoyer rapport à ${rec.Email} ?`);
-					if (confirmSend) {
-						const body = {
-							type: 'rapport',
-							prenom: rec['Prenom_et_nom_First'] || '',
-							nom: rec['Prenom_et_nom_Last'] || '',
-							email: rec.Email || '',
-							dateStage: rec['Date_du_stage'] || '',
-							id: rec.id
-						};
-						await sendEmailWebhook(body);
-					}
-				});
-				actionsCell.appendChild(emailBtnRapport);
-			}
+			emailBtnRapport.title = "Envoyer le rapport de stage";
+			emailBtnRapport.style.border = 'none';
+			emailBtnRapport.style.cursor = 'pointer';
+			emailBtnRapport.addEventListener('click', async () => {
+				const confirmSend = confirm(`Envoyer rapport à ${rec.Email} ?`);
+				if (confirmSend) {
+					const body = {
+						type: 'rapport',
+						prenom: rec['Prenom_et_nom_First'] || '',
+						nom: rec['Prenom_et_nom_Last'] || '',
+						email: rec.Email || '',
+						dateStage: rec['Date_du_stage'] || '',
+						id: rec.id
+					};
+					await sendEmailWebhook(body, rec.id, 'isRapportSent', true);
+				}
+			});
+			actionsCell.appendChild(emailBtnRapport);
 		}
+	}
 
 		function applyFilters() {
 			const nameQuery = searchInput.value.trim().toLowerCase();
