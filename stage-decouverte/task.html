@@ -91,7 +91,7 @@
 		async function updateFieldInGrist(recordId, fieldName, value) {
 			try {
 				await window.grist.docApi.applyUserActions([
-					['UpdateRecord', 'Stages_Extraction_WPForms', recordId, { [fieldName]: value }]
+					['UpdateRecord', 'Extraction_WPForms', recordId, { [fieldName]: value }]
 				]);
 				console.log(`${fieldName} mis à jour pour le record ${recordId}`);
 			} catch (error) {
