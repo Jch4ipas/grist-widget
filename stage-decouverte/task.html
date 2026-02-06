@@ -125,10 +125,10 @@
 			for (const rec of records) {
 				const row = table.insertRow();
 				const prenomCell = row.insertCell();
-				prenomCell.textContent = rec['Prenom_et_nom_First'] || '';
+				prenomCell.textContent = rec['Prenom'] || '';
 
 				const nomCell = row.insertCell();
-				nomCell.textContent = rec['Prenom_et_nom_Last'] || '';
+				nomCell.textContent = rec['Nom'] || '';
 
 				const dateCell = row.insertCell();
 				dateCell.textContent = rec['Date_du_stage'] || '';
@@ -174,8 +174,8 @@
 					if (confirmSend) {
 						const body = {
 							type: action.type,
-							prenom: rec['Prenom_et_nom_First'] || '',
-							nom: rec['Prenom_et_nom_Last'] || '',
+							prenom: rec['Prenom'] || '',
+							nom: rec['Nom'] || '',
 							email: rec.Email || '',
 							dateStage: rec['Date_du_stage'] || '',
 							id: rec.id
@@ -200,8 +200,8 @@
 
 			if (nameQuery) {
 				filtered = filtered.filter(rec => {
-					const prenom = (rec['Prenom_et_nom_First'] || '').toLowerCase();
-					const nom = (rec['Prenom_et_nom_Last'] || '').toLowerCase();
+					const prenom = (rec['Prenom'] || '').toLowerCase();
+					const nom = (rec['Nom'] || '').toLowerCase();
 					return prenom.includes(nameQuery) || nom.includes(nameQuery);
 				});
 			}
