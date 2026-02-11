@@ -169,53 +169,53 @@
 				const age = calculateAge(rec['Date_de_naissance']);
 				ageCell.textContent = age ? `${age} ans` : '';
 
-			const emailActions = [
-				{ type: 'invitation', title: 'Envoyer email invitation', icon: 'mail', fieldName: 'isInvitationSent' },
-				{ type: 'confirmation', title: 'Envoyer email confirmation', icon: 'check', fieldName: 'isConfirmationSent' },
-				{ type: 'rapport', title: 'Envoyer le rapport de stage', icon: 'file', fieldName: 'isRapportSent' }
-			];
+				const emailActions = [
+					{ type: 'invitation', title: 'Envoyer email invitation', icon: 'mail', fieldName: 'isInvitationSent' },
+					{ type: 'confirmation', title: 'Envoyer email confirmation', icon: 'check', fieldName: 'isConfirmationSent' },
+					{ type: 'rapport', title: 'Envoyer le rapport de stage', icon: 'file', fieldName: 'isRapportSent' }
+				];
 
-			emailActions.forEach(action => {
-				const statusCell = row.insertCell();
-				statusCell.textContent = rec[action.fieldName] ? '✓' : '✗';
-				statusCell.style.textAlign = 'center';
-				statusCell.style.fontWeight = 'bold';
-				statusCell.style.color = rec[action.fieldName] ? 'green' : 'red';
-			});
+				emailActions.forEach(action => {
+					const statusCell = row.insertCell();
+					statusCell.textContent = rec[action.fieldName] ? '✓' : '✗';
+					statusCell.style.textAlign = 'center';
+					statusCell.style.fontWeight = 'bold';
+					statusCell.style.color = rec[action.fieldName] ? 'green' : 'red';
+				});
 
-			const actionsCell = row.insertCell();
+				const actionsCell = row.insertCell();
 
-			emailActions.forEach((action, index) => {
-				const emailBtn = document.createElement('button');
-				emailBtn.innerHTML = `
+				emailActions.forEach((action, index) => {
+					const emailBtn = document.createElement('button');
+					emailBtn.innerHTML = `
           <svg class="icon" aria-hidden="true">
             <use xlink:href="#${action.icon}"></use>
           </svg>
         `;
-				emailBtn.title = action.title;
-				emailBtn.style.border = 'none';
-				emailBtn.style.cursor = 'pointer';
-				if (index < emailActions.length - 1) {
-					emailBtn.style.marginRight = '5px';
-				}
-				emailBtn.addEventListener('click', async () => {
-					const confirmSend = confirm(`Envoyer ${action.type} à ${rec.Email} ?`);
-					if (confirmSend) {
-						const body = {
-							type: action.type,
-							prenom: rec['Prenom'] || '',
-							nom: rec['Nom'] || '',
-							email: rec.Email || '',
-							dateStage: rec['Date_du_stage'] || '',
-							id: rec.id
-						};
-						await sendEmailWebhook(body, rec.id, action.fieldName, true);
+					emailBtn.title = action.title;
+					emailBtn.style.border = 'none';
+					emailBtn.style.cursor = 'pointer';
+					if (index < emailActions.length - 1) {
+						emailBtn.style.marginRight = '5px';
 					}
+					emailBtn.addEventListener('click', async () => {
+						const confirmSend = confirm(`Envoyer ${action.type} à ${rec.Email} ?`);
+						if (confirmSend) {
+							const body = {
+								type: action.type,
+								prenom: rec['Prenom'] || '',
+								nom: rec['Nom'] || '',
+								email: rec.Email || '',
+								dateStage: rec['Date_du_stage'] || '',
+								id: rec.id
+							};
+							await sendEmailWebhook(body, rec.id, action.fieldName, true);
+						}
+					});
+					actionsCell.appendChild(emailBtn);
 				});
-				actionsCell.appendChild(emailBtn);
-			});
+			}
 		}
-	}
 
 		function applyFilters() {
 			const nameQuery = searchInput.value.trim().toLowerCase();
