@@ -38,7 +38,15 @@
 				<use xlink:href="#calendar"></use>
 			</svg>
 		</div>
-
+		<div class="my-1" style="position: relative; max-width: 300px;">
+			<input type="button" id="makeContact"
+				title="Envoye les infos de tout les stagiaire (afficher actuellement) sur telegram"
+				style="padding-left: 30px; box-sizing: border-box;">
+			<svg class="icon" aria-hidden="true"
+				style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; pointer-events: none;">
+				<use xlink:href="#icon-mail-plane"></use>
+			</svg>
+		</div>
 		<div>
 			<table id="table" class="table table-boxed"></table>
 		</div>
@@ -46,10 +54,12 @@
 
 	<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 	<script>
-		const WEBHOOK_URL = "https://n8n.fsd.epfl.ch/webhook/631a3f12-3b64-4853-84da-79774b057273";
+		const WEBHOOK_URL_EMAIL = "https://n8n.fsd.epfl.ch/webhook/631a3f12-3b64-4853-84da-79774b057273";
+		const WEBHOOK_URL_CONTACT = "https://n8n.fsd.epfl.ch/webhook-test/234234-sdf-234-wf-23-4-wef-23";
 
 		const searchInput = document.getElementById('searchInput');
 		const dateInput = document.getElementById('dateInput');
+		const sendContactButton = document.getElementById('makeContact');
 		let allRecords = [];
 
 		window.grist.ready({ requiredAccess: 'full' });
@@ -68,7 +78,7 @@
 
 		async function sendEmailWebhook(body, recordId_updateFieldInGrist, fieldName_updateFieldInGrist, value_updateFieldInGrist) {
 			try {
-				const response = await fetch(WEBHOOK_URL, {
+				const response = await fetch(WEBHOOK_URL_EMAIL, {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
@@ -78,9 +88,28 @@
 
 				if (response.ok) {
 					await updateFieldInGrist(recordId_updateFieldInGrist, fieldName_updateFieldInGrist, value_updateFieldInGrist);
-					alert(`Email envoyé à ${body.prenom} ${body.nom}`);
 				} else {
 					alert('Erreur lors de l\'envoi de l\'email');
+				}
+			} catch (error) {
+				console.error('Erreur webhook:', error);
+				alert('Erreur de connexion au webhook');
+			}
+		}
+		async function sendContactWebhook(body) {
+			try {
+				const response = await fetch(WEBHOOK_URL_CONTACT, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify(body)
+				});
+
+				if (response.ok) {
+					console.log('Contact envoyer')
+				} else {
+					alert('Erreur lors de l\'envoi du message');
 				}
 			} catch (error) {
 				console.error('Erreur webhook:', error);
@@ -220,6 +249,14 @@
 			const filtered = applyFilters();
 			renderTable(filtered);
 		};
+
+		sendContactButton.addEventListener('click', async () => {
+			const confirmSend = confirm(`Envoyer les contacts sur telegram`);
+			if (confirmSend) {
+				const filtered = applyFilters();
+				await sendEmailWebhook(filtered);
+			}
+		});
 
 		window.grist.onRecords(records => {
 			console.log('Nombre de records reçus:', records.length);
