@@ -55,7 +55,7 @@
 	<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 	<script>
 		const WEBHOOK_URL_EMAIL = "https://n8n.fsd.epfl.ch/webhook/631a3f12-3b64-4853-84da-79774b057273";
-		const WEBHOOK_URL_CONTACT = "https://n8n.fsd.epfl.ch/webhook-test/234234-sdf-234-wf-23-4-wef-23";
+		const WEBHOOK_URL_CONTACT = "https://n8n.fsd.epfl.ch/webhook/687fa994-84c4-47ea-b2f4-b20efd472130";
 
 		const searchInput = document.getElementById('searchInput');
 		const dateInput = document.getElementById('dateInput');
@@ -254,7 +254,11 @@
 			const confirmSend = confirm(`Envoyer les contacts sur telegram`);
 			if (confirmSend) {
 				const filtered = applyFilters();
-				await sendEmailWebhook(filtered);
+				const body = {
+					dateStage: dateInput.value.trim(),
+					stagiaire: filtered
+				}
+				await sendContactWebhook(body);
 			}
 		});
 
