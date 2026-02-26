@@ -61,7 +61,6 @@
 		const dateInput = document.getElementById('dateInput');
 		const sendContactButton = document.getElementById('makeContact');
 		let allRecords = [];
-
 		window.grist.ready({ requiredAccess: 'full' });
 
 		function calculateAge(birthDate) {
@@ -246,9 +245,147 @@
 					});
 					actionsCell.appendChild(emailBtn);
 				});
+				const jsonRapportBtn = document.createElement('button');
+				jsonRapportBtn.innerHTML = `
+          <svg class="icon" aria-hidden="true">
+            <use xlink:href="#trello"></use>
+          </svg>
+        `;
+				jsonRapportBtn.title = "Génére le json pour le rapport";
+				jsonRapportBtn.style.border = 'none';
+				jsonRapportBtn.style.cursor = 'pointer';
+				jsonRapportBtn.style.marginLeft = '5px';
+				jsonRapportBtn.addEventListener('click', async () => {
+					const confirmSend = confirm(`Ouvrir la page du rapport ?`);
+					if (confirmSend) {
+						const rapportDeStageDataFromGrist = await grist.docApi.fetchTable("Rapport_de_stage");
+						let dataURLSignature;
+						try {
+							const responseUser = await getCurrentUserData();
+							const attachmentId = rapportDeStageDataFromGrist.signature[0][1]
+							const access = await grist.docApi.getAccessToken({ readOnly: true }); // retrieves an access token from grist
+							let baseUrl = access.baseUrl;
+							if (baseUrl.includes("0.0.0.0")) {
+								baseUrl = baseUrl.replace("0.0.0.0", window.location.hostname);
+							}
+							const url = `${baseUrl}/attachments/${attachmentId}/download`;
+							const response = await fetch(url, { // download the signature
+								headers: { 'Authorization': `Bearer ${access.token}` }
+							});
+							dataURLSignature = await loadImageAsDataURL(response);
+						} catch (error) {
+							console.log("error lors de la récupération du user actuel : ", error);
+						}
+						const body = {
+							json: {
+								"entrepriseName": rapportDeStageDataFromGrist.entrepriseName[0],
+								"responsibleName": rapportDeStageDataFromGrist.responsibleName[0],
+								"responsibleMail": rapportDeStageDataFromGrist.responsibleMail[0],
+								"responsiblePostalAddress": rapportDeStageDataFromGrist.responsiblePostalAddress[0],
+								"responsiblePostalCode": rapportDeStageDataFromGrist.responsiblePostalCode[0],
+								"responsibleLocality": rapportDeStageDataFromGrist.responsibleLocality[0],
+								"responsiblePhone": rapportDeStageDataFromGrist.responsiblePhone[0],
+								"internLastName": rec['Nom'],
+								"internFirstName": rec['Prenom'],
+								"internClass": rec['Voie_Niveau_Option'] || "-",
+								"internEstablishment": rec['Ecole_ou_etablissement'] || "-",
+								"internAddress": rec['Adresse_Address_Line_1'],
+								"internPostalCode": `CH-${rec['Adresse_Zip_Postal_Code']}`,
+								"internLocality": rec['Adresse_City'],
+								"internPhone": rec['Telephone_mobile'].slice(1),
+								"job": rapportDeStageDataFromGrist.job[0],
+								"beginDate": new Date(rec['Date_du_stage']).toLocaleDateString('fr-CH'),
+								"endDate": new Date(rec['Date_du_stage']).toLocaleDateString('fr-CH'),
+								"firstImpression": "really-good",
+								"ponctuality": "really-good",
+								"selfConfidence": "really-good",
+								"dynamism": "really-good",
+								"concentrationSpan": "really-good",
+								"curiosity": "really-good",
+								"commitment": "really-good",
+								"interestLearning": "really-good",
+								"attitudeRemarks": `• ${rec['Prenom']} se prêtait volontiers aux différentes tâches avec motivation et persévérance.\n• ${rec['Prenom']} démontre une attitude mature et adaptée au contexte professionnel dès le début du stage.\n• ${rec['Prenom']} fait preuve d'une bonne capacité d'adaptation aux exigences du milieu de travail.\n• ${rec['Prenom']} adopte une posture professionnelle cohérente avec les attentes d'un environnement technique.\n• ${rec['Prenom']} contribue positivement à l'ambiance du stage par son attitude calme et mesurée.`,
+								"skillful": "really-good",
+								"fast": "really-good",
+								"careful": "really-good",
+								"methodical": "really-good",
+								"persevering": "really-good",
+								"attentive": "really-good",
+								"followInstructions": "really-good",
+								"tasksExecRemarks": `• ${rec['Prenom']} participait bien et montrait de l'intérêt dans les différentes activités proposées.\n• ${rec['Prenom']} s'implique pleinement dans les activités, même face à des tâches complexes.\n• ${rec['Prenom']} montre une bonne précision dans l’exécution des tâches techniques qui lui sont confiées.\n• ${rec['Prenom']} a parfois besoin de reformuler les consignes mais parvient ensuite à les mettre en œuvre correctement.\n• ${rec['Prenom']} parvient à gérer plusieurs petites tâches successives sans se disperser.`,
+								"comfortable": "really-good",
+								"helpful": "really-good",
+								"polite": "really-good",
+								"smiling": "really-good",
+								"confidentToAsk": "really-good",
+								"showInterest": "really-good",
+								"expressClairly": "really-good",
+								"contactRemarks": `• ${rec['Prenom']} établit facilement le contact avec les autres et s’intègre bien au sein du groupe.\n• ${rec['Prenom']} adopte une attitude respectueuse et polie avec les collaborateurs et les apprentis.\n• ${rec['Prenom']} participe volontiers aux échanges et communique de manière claire lorsque cela est nécessaire.\n• ${rec['Prenom']} montre une bonne capacité d’écoute et tient compte des remarques qui lui sont adressées.\n• ${rec['Prenom']} peut encore gagner en assurance dans ses interactions, mais le contact est globalement satisfaisant.`,
+								"apprenticeshipJob": "adequate",
+								"opinionRemarks": `• Le projet de formation de ${rec['Prenom']} est très pertinent et en adéquation avec ses aptitudes.\n• Le projet de formation de ${rec['Prenom']} semble cohérent, même si certains points restent à consolider.\n• L'informatique correspond bien à ${rec['Prenom']}.\n• Le projet de formation dans ce domaine n’est pas encore suffisamment affirmé pour être recommandé sans réserve.\n`,
+								"adviceProject": "find-apprenticeship",
+								"advicesRemarks": `• De continuer à développer ses compétences par des cours, des projets personnels ou des activités parascolaires.\n• De renforcer ses bases scolaires, en particulier en mathématiques, logique et expression écrite, qui sont essentielles dans ce métier.\n• ${rec['Prenom']} devrait explorer différents métiers liés à l'informatique pour préciser son choix (informaticien, médiamaticien..)`,
+								"considerCandidate": "maybe",
+								"considerCandidatesRemarks": `• Oui, au vu de son comportement et de ses compétences, ${rec['Prenom']} ferait un·e bon·ne apprenti·e.\n• Un engagement en formation pourrait être envisagé, mais nécessiterait encore une confirmation de la motivation de ${rec['Prenom']} sur la durée.\n• ${rec['Prenom']} a déjà de bonnes connaissances en informatique.\n• Non, ${rec['Prenom']} devrait d’abord développer davantage ses compétences et sa posture professionnelle avant de pouvoir être retenu·e pour une formation.`,
+								"bilanStage": "no",
+								"fillUpDate": new Date().toLocaleDateString('fr-CH'),
+								"signature": dataURLSignature,
+							}
+						};
+						const w = window.open(targetUrl, '_blank');
+						const allowedOrigin = new URL(targetUrl).origin;
+						async function onMessage(event) {
+							if (!event.data?.type) return;
+							if (event.source !== w) return;
+							if (!event.data?.type) return;
+							console.log("onMessage activate", event.data.type);
+							console.log("even.origin" + event.origin + " = allowedOrigin" + allowedOrigin);
+							if (event.origin !== allowedOrigin) return;
+							switch (event.data.type) {
+
+								case 'ready':
+									try {
+										w.postMessage(
+											{ type: 'import-rapport', payload: body },
+											event.origin || '*'
+										);
+										window.removeEventListener('message', onMessage);
+										window.addEventListener('message', onMessage);
+									} catch (err) {
+										console.error('Erreur pendant postMessage:', err);
+									}
+									break;
+
+								case 'sendPdf':
+									try {
+										const rapportPdfInDataUrl = event.data.payload.pdfRapportInDataUrlBase64;
+										await updateFieldInGrist(rec.id, "rapportPDF", rapportPdfInDataUrl);
+										window.removeEventListener('message', onMessage);
+									} catch (err) {
+										console.error("erreur lors de la récupération du pdf", err);
+									}
+
+
+									break;
+
+								default:
+									return;
+							}
+						}
+						window.addEventListener('message', onMessage);
+						// setTimeout(() => {
+						// 	if (!w || w.closed) return;
+						// 	try {
+						// 		w.postMessage({ type: 'import-rapport', payload: body }, '*');
+						// 	} catch (e) {
+						// 		console.log(`Timeout from ${targetUrl}`)
+						// 	}
+						// }, 3000);
+					}
+				});
+				actionsCell.appendChild(jsonRapportBtn);
 			}
 		}
-
 		function applyFilters() {
 			const nameQuery = searchInput.value.trim().toLowerCase();
 			const dateQuery = dateInput.value.trim();
