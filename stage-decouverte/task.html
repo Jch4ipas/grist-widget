@@ -63,6 +63,7 @@
 		let allRecords = [];
 		window.grist.ready({ requiredAccess: 'full' });
 
+		// calculates age by entering the date of birth as a parameter
 		function calculateAge(birthDate) {
 			if (!birthDate) return '';
 			const birth = new Date(birthDate);
@@ -74,7 +75,7 @@
 			}
 			return age;
 		}
-
+		// Triggers a webhook in n8n that send an mail (The body is for the mails) and change an boolean in grist to show if you already send the mail
 		async function sendEmailWebhook(body, recordId_updateFieldInGrist, fieldName_updateFieldInGrist, value_updateFieldInGrist) {
 			try {
 				const response = await fetch(WEBHOOK_URL_EMAIL, {
@@ -95,6 +96,7 @@
 				alert('Erreur de connexion au webhook');
 			}
 		}
+		// Triggers a webhook in n8n that displays a view of current trainees in the table and sends the view to Telegram
 		async function sendContactWebhook(body) {
 			try {
 				const response = await fetch(WEBHOOK_URL_CONTACT, {
@@ -115,7 +117,7 @@
 				alert('Erreur de connexion au webhook');
 			}
 		}
-
+		// Update 1 field in the table Extraction_WPForms by giving the recordId, the field Name and the value that go in the field
 		async function updateFieldInGrist(recordId, fieldName, value) {
 			try {
 				await window.grist.docApi.applyUserActions([
@@ -126,6 +128,7 @@
 				console.error('Erreur lors de la mise à jour du champ:', error);
 			}
 		}
+		// retrieves the email and name of the current user in grist
 		const getCurrentUserData = async () => {
 			try {
 				await grist.docApi.applyUserActions([[
@@ -146,6 +149,7 @@
 				console.error("getCurrentUserData : Error code : ", error)
 			}
 		}
+		// Take an image in input and return a data Url of the image
 		async function loadImageAsDataURL(response) {
 			try {
 				const blob = await response.blob();
@@ -159,6 +163,7 @@
 				return '';
 			}
 		}
+		// display a table of people using an array of people as a parameter
 		function renderTable(records) {
 			const table = document.getElementById('table');
 
@@ -386,16 +391,12 @@
 				actionsCell.appendChild(jsonRapportBtn);
 			}
 		}
+		// filter records by using the name input and the date input
 		function applyFilters() {
 			const nameQuery = searchInput.value.trim().toLowerCase();
 			const dateQuery = dateInput.value.trim();
-
-			console.log('Filtre date appliqué:', dateQuery);
-
 			let filtered = allRecords;
-
 			filtered = filtered.filter(rec => rec['Date_du_stage']);
-
 			if (nameQuery) {
 				filtered = filtered.filter(rec => {
 					const prenom = (rec['Prenom'] || '').toLowerCase();
@@ -413,12 +414,12 @@
 			}
 			return filtered;
 		}
-
+		// function to render the table and apply the filter
 		const eventRenderTable = () => {
 			const filtered = applyFilters();
 			renderTable(filtered);
 		};
-
+		// Event Listener for the button to make a view of the people in the current Table
 		sendContactButton.addEventListener('click', async () => {
 			const confirmSend = confirm(`Envoyer les contacts sur telegram`);
 			if (confirmSend) {
@@ -430,23 +431,19 @@
 				await sendContactWebhook(body);
 			}
 		});
-
+		// retrieves data from the data source on grist and then uses this data to display the table
 		window.grist.onRecords(records => {
-			console.log('Nombre de records reçus:', records.length);
-			console.log('Premier record:', records[0]);
 			allRecords = records;
 			if (records.length > 0) {
 				console.log('Colonnes disponibles:', Object.keys(records[0]));
 			}
 			const filtered = applyFilters();
-			// renderTable(allRecords); // avec tout
-			renderTable(filtered); // avec filtre
+			// renderTable(allRecords); // without filter so even the trainee those without a date of stage
+			renderTable(filtered); // with filter
 		});
-
 		searchInput.addEventListener('input', eventRenderTable);
 		dateInput.addEventListener('input', eventRenderTable);
 	</script>
-
 	<script>
 		svgPath = 'https://web2018.epfl.ch/8.3.0/icons/icons.svg';
 		featherSvgPath = 'https://web2018.epfl.ch/8.3.0/icons/feather-sprite.svg';
