@@ -127,6 +127,26 @@
 				console.error('Erreur lors de la mise à jour du champ:', error);
 			}
 		}
+		const getCurrentUserData = async () => {
+			try {
+				await grist.docApi.applyUserActions([[
+					"AddRecord",
+					"UserLog", // Need a table with an id "UserLog" and 2 column named "userName" and "userEmail" and you need to put 1 trigger formula on each of them and in the formula "user.Name" and "user.Email"
+					null,
+					{}
+				]]);
+				const table = await grist.docApi.fetchTable("UserLog");
+				const lastIndex = table.id.length - 1;
+				const lastElementName = table.userName[lastIndex]
+				const lastElementEmail = table.userEmail[lastIndex]
+				return {
+					"name": lastElementName,
+					"email": lastElementEmail,
+				}
+			} catch (error) {
+				console.error("getCurrentUserData : Error code : ", error)
+			}
+		}
 		async function loadImageAsDataURL(response) {
 			try {
 				const blob = await response.blob();
