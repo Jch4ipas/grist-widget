@@ -264,20 +264,9 @@
 					const confirmSend = confirm(`Ouvrir la page du rapport ?`);
 					if (confirmSend) {
 						const rapportDeStageDataFromGrist = await grist.docApi.fetchTable("Rapport_de_stage");
-						let dataURLSignature;
+						let userData;
 						try {
-							const responseUser = await getCurrentUserData();
-							const attachmentId = rapportDeStageDataFromGrist.signature[0][1]
-							const access = await grist.docApi.getAccessToken({ readOnly: true }); // retrieves an access token from grist
-							let baseUrl = access.baseUrl;
-							if (baseUrl.includes("0.0.0.0")) {
-								baseUrl = baseUrl.replace("0.0.0.0", window.location.hostname);
-							}
-							const url = `${baseUrl}/attachments/${attachmentId}/download`;
-							const response = await fetch(url, { // download the signature
-								headers: { 'Authorization': `Bearer ${access.token}` }
-							});
-							dataURLSignature = await loadImageAsDataURL(response);
+							userData = await getCurrentUserData();
 						} catch (error) {
 							console.log("error lors de la récupération du user actuel : ", error);
 						}
@@ -334,7 +323,7 @@
 								"considerCandidatesRemarks": `• Oui, au vu de son comportement et de ses compétences, ${rec['Prenom']} ferait un·e bon·ne apprenti·e.\n• Un engagement en formation pourrait être envisagé, mais nécessiterait encore une confirmation de la motivation de ${rec['Prenom']} sur la durée.\n• ${rec['Prenom']} a déjà de bonnes connaissances en informatique.\n• Non, ${rec['Prenom']} devrait d’abord développer davantage ses compétences et sa posture professionnelle avant de pouvoir être retenu·e pour une formation.`,
 								"bilanStage": "no",
 								"fillUpDate": new Date().toLocaleDateString('fr-CH'),
-								"signature": dataURLSignature,
+								"signature": rapportDeStageDataFromGrist.signature[0],
 							}
 						};
 						const w = window.open(targetUrl, '_blank');
