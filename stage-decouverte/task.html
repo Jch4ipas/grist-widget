@@ -649,9 +649,9 @@
 		// retrieves data from the data source on grist and then uses this data to display the table
 		window.grist.onRecords(records => {
 			allRecords = records;
-			if (records.length > 0) {
-				console.log('Colonnes disponibles:', Object.keys(records[0]));
-			}
+			// if (records.length > 0) {
+			// 	console.log('Colonnes disponibles:', Object.keys(records[0]));
+			// }
 			const filtered = applyFilters();
 			// renderTable(allRecords); // without filter so even the trainee those without a date of stage
 			renderTable(filtered); // with filter
