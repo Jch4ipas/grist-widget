@@ -565,7 +565,10 @@
 									try {
 										const rapportPdfInDataUrl = event.data.payload.pdfRapportInDataUrlBase64;
 										await updateFieldInGrist(rec.id, "rapportPDF", rapportPdfInDataUrl);
+										console.log(rapportPdfInDataUrl);
 										window.removeEventListener('message', onMessage);
+										await updateFieldInGrist(rec.id, "isRapportMade", true);
+										eventRenderTable();
 									} catch (err) {
 										console.error("erreur lors de la récupération du pdf", err);
 									}
