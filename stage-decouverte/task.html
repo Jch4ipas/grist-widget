@@ -173,19 +173,62 @@
 			if (!records || records.length === 0) {
 				const row = table.insertRow();
 				const cell = row.insertCell();
-				cell.colSpan = 5;
+				cell.colSpan = 11;
 				cell.textContent = 'Aucun stagiaire trouvé.';
 				cell.style.textAlign = 'center';
 				return;
 			}
 
-			const header = table.createTHead();
-			const headerRow = header.insertRow();
+			const thead = table.createTHead();
+			const groupRow = thead.insertRow();
 
-			['Prénom', 'Nom', 'Date du stage', 'Email', 'Âge', 'Invitation', 'Confirmation', 'Rapport', 'Actions'].forEach(title => {
+			['Prénom', 'Nom', 'Date du stage', 'Email', 'Âge'].forEach(label => {
 				const th = document.createElement('th');
-				th.textContent = title;
-				headerRow.appendChild(th);
+				th.textContent = label;
+				th.rowSpan = 2;
+				th.style.verticalAlign = 'middle';
+				groupRow.appendChild(th);
+			});
+
+			const avantTh = document.createElement('th');
+			avantTh.textContent = 'Avant stage';
+			avantTh.colSpan = 3;
+			avantTh.style.backgroundColor = '#FF0000';
+			avantTh.style.color = '#fff';
+			avantTh.style.textAlign = 'center';
+			avantTh.style.fontWeight = '700';
+			groupRow.appendChild(avantTh);
+
+			const apresTh = document.createElement('th');
+			apresTh.textContent = 'Après stage';
+			apresTh.colSpan = 2;
+			apresTh.style.backgroundColor = '#333';
+			apresTh.style.color = '#fff';
+			apresTh.style.textAlign = 'center';
+			apresTh.style.fontWeight = '700';
+			groupRow.appendChild(apresTh);
+
+			// ── Header row 2: sub-columns ────────────────────────────────────────
+			const subRow = thead.insertRow();
+
+			['Invitation', 'Autre action', 'Confirmation'].forEach(label => {
+				const th = document.createElement('th');
+				th.textContent = label;
+				th.style.backgroundColor = '#fde8e8';
+				th.style.color = '#b51f1f';
+				th.style.textAlign = 'center';
+				th.style.fontSize = '0.85em';
+				subRow.appendChild(th);
+			});
+
+			['Rapport de stage', 'Rapport & Attestation'].forEach(label => {
+				const th = document.createElement('th');
+				th.textContent = label;
+				th.style.backgroundColor = '#e8e8e8';
+				th.style.color = '#333';
+				th.style.textAlign = 'center';
+				th.style.fontSize = '0.85em';
+				subRow.appendChild(th);
 			});
 
 			for (const rec of records) {
@@ -208,62 +251,191 @@
 				const age = calculateAge(rec['Date_de_naissance']);
 				ageCell.textContent = age ? `${age} ans` : '';
 
-				const emailActions = [
-					{ type: 'invitation', title: 'Envoyer email invitation', icon: 'mail', fieldName: 'isInvitationSent' },
-					{ type: 'confirmation', title: 'Envoyer email confirmation', icon: 'check', fieldName: 'isConfirmationSent' },
-					{ type: 'rapport', title: 'Envoyer le rapport de stage', icon: 'file', fieldName: 'isRapportSent' }
+				const invCell = row.insertCell();
+				invCell.style.textAlign = 'center';
+				invCell.style.whiteSpace = 'nowrap';
+
+				const invStatus = document.createElement('span');
+				invStatus.textContent = rec['isInvitationSent'] ? '✓' : '✗';
+				invStatus.style.fontWeight = 'bold';
+				invStatus.style.color = rec['isInvitationSent'] ? 'green' : 'red';
+				invStatus.style.marginRight = '4px';
+				invCell.appendChild(invStatus);
+
+				const invBtn = document.createElement('button');
+				invBtn.innerHTML = `<svg class="icon" aria-hidden="true" style="width:16px;height:16px;fill:#333"><use xlink:href="#mail"></use></svg>`;
+				invBtn.title = 'Envoyer invitation';
+				invBtn.style.cursor = 'pointer';
+				invBtn.style.padding = '2px 4px';
+				invBtn.addEventListener('click', async () => {
+					if (!confirm(`Envoyer invitation à ${rec['Email']} ?`)) return;
+					await sendEmailWebhook(
+						{
+							type: 'invitation',
+							prenom: prenom || '',
+							nom: nom || '',
+							email: rec['Email'] || '',
+							dateStage: rec['Date_du_stage'] || '',
+							id: rec.id,
+							entryID: rec.Entry_ID
+						},
+						rec.id,
+						'isInvitationSent',
+						true
+					);
+					eventRenderTable();
+				});
+				invCell.appendChild(invBtn);
+
+				const autreCell = row.insertCell();
+				autreCell.style.textAlign = 'center';
+				autreCell.style.position = 'relative';
+
+				const dropWrapper = document.createElement('div');
+				dropWrapper.style.position = 'relative';
+				dropWrapper.style.display = 'inline-block';
+
+				const dropToggle = document.createElement('button');
+				dropToggle.textContent = '⋯';
+				dropToggle.title = 'Autres actions';
+				dropToggle.setAttribute('aria-label', 'Autres actions');
+				dropToggle.setAttribute('aria-haspopup', 'true');
+				dropToggle.setAttribute('aria-expanded', 'false');
+				dropToggle.style.border = 'none';
+				dropToggle.style.background = 'none';
+				dropToggle.style.color = 'black';
+				dropToggle.style.cursor = 'pointer';
+				dropToggle.style.padding = '2px 6px';
+				dropToggle.style.fontSize = '1.1em';
+
+				const dropMenu = document.createElement('div');
+				dropMenu.style.display = 'none';
+				dropMenu.style.position = 'absolute';
+				dropMenu.style.zIndex = '100';
+				dropMenu.style.left = '0';
+				dropMenu.style.top = '100%';
+				dropMenu.style.background = '#fff';
+				dropMenu.style.border = '1px solid #ccc';
+				dropMenu.style.borderRadius = '4px';
+				dropMenu.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+				dropMenu.style.minWidth = '200px';
+				dropMenu.style.padding = '4px 0';
+				dropMenu.setAttribute('role', 'menu');
+
+				const subActions = [
+					{ label: 'Révocation', type: 'revocation', fieldName: 'isRevocationSent', icon: 'x-circle', needConfirm: true },
+					{ label: 'Rappel SMS', type: 'rappel-sms', fieldName: 'isRappelSmsSent', icon: 'message-circle', needConfirm: false },
+					{ label: 'Rappel Mail', type: 'rappel-mail', fieldName: 'isRappelMailSent', icon: 'mail', needConfirm: false }
 				];
 
-				emailActions.forEach(action => {
-					const statusCell = row.insertCell();
-					statusCell.textContent = rec[action.fieldName] ? '✓' : '✗';
-					statusCell.style.textAlign = 'center';
-					statusCell.style.fontWeight = 'bold';
-					statusCell.style.color = rec[action.fieldName] ? 'green' : 'red';
-				});
+				subActions.forEach(action => {
+					const item = document.createElement('div');
+					item.setAttribute('role', 'menuitem');
+					item.style.display = 'flex';
+					item.style.alignItems = 'center';
+					item.style.gap = '8px';
+					item.style.padding = '6px 12px';
+					item.style.fontSize = '0.875em';
+					item.style.cursor = 'default';
 
-				const actionsCell = row.insertCell();
+					const labelSpan = document.createElement('span');
+					labelSpan.textContent = action.label;
+					labelSpan.style.flex = '1';
+					item.appendChild(labelSpan);
 
-				emailActions.forEach((action, index) => {
-					const emailBtn = document.createElement('button');
-					emailBtn.innerHTML = `
-          <svg class="icon" aria-hidden="true">
-            <use xlink:href="#${action.icon}"></use>
-          </svg>
-        `;
-					emailBtn.title = action.title;
-					emailBtn.style.border = 'none';
-					emailBtn.style.cursor = 'pointer';
-					if (index < emailActions.length - 1) {
-						emailBtn.style.marginRight = '5px';
-					}
-					emailBtn.addEventListener('click', async () => {
-						const confirmSend = confirm(`Envoyer ${action.type} à ${rec.Email} ?`);
-						if (confirmSend) {
-							const body = {
-								type: action.type,
-								prenom: prenom || '',
-								nom: nom || '',
-								email: rec.Email || '',
-								dateStage: rec['Date_du_stage'] || '',
-								id: rec.id
-							};
-							await sendEmailWebhook(body, rec.id, action.fieldName, true);
-						}
+					const stSpan = document.createElement('span');
+					stSpan.textContent = rec[action.fieldName] ? '✓' : '✗';
+					stSpan.style.fontWeight = 'bold';
+					stSpan.style.color = rec[action.fieldName] ? 'green' : 'red';
+					item.appendChild(stSpan);
+
+					const sendBtn = document.createElement('button');
+					sendBtn.innerHTML = `<svg class="icon" aria-hidden="true" style="width:14px;height:14px;fill:#333"><use xlink:href="#${action.icon}"></use></svg>`;
+					sendBtn.title = `Envoyer ${action.label}`;
+					sendBtn.setAttribute('aria-label', `Envoyer ${action.label}`);
+					sendBtn.style.cursor = 'pointer';
+					sendBtn.style.padding = '2px 4px';
+					sendBtn.addEventListener('click', async (e) => {
+						e.stopPropagation();
+						if (action.needConfirm && !confirm(`Confirmer la révocation pour ${prenom} ${nom} ?`)) return;
+						await sendEmailWebhook({ type: action.type, prenom: prenom || '', nom: nom || '', email: rec['Email'] || '', dateStage: rec['Date_du_stage'] || '', id: rec.id, entryID: rec.Entry_ID }, rec.id, action.fieldName, true);
+						dropMenu.style.display = 'none';
+						dropToggle.setAttribute('aria-expanded', 'false');
+						eventRenderTable();
 					});
-					actionsCell.appendChild(emailBtn);
+					item.appendChild(sendBtn);
+					dropMenu.appendChild(item);
 				});
-				const jsonRapportBtn = document.createElement('button');
-				jsonRapportBtn.innerHTML = `
-          <svg class="icon" aria-hidden="true">
-            <use xlink:href="#trello"></use>
-          </svg>
-        `;
-				jsonRapportBtn.title = "Génére le json pour le rapport";
-				jsonRapportBtn.style.border = 'none';
-				jsonRapportBtn.style.cursor = 'pointer';
-				jsonRapportBtn.style.marginLeft = '5px';
-				jsonRapportBtn.addEventListener('click', async () => {
+
+				dropToggle.addEventListener('click', (e) => {
+					e.stopPropagation();
+					const isOpen = dropMenu.style.display === 'block';
+					// close all other open menus
+					document.querySelectorAll('[data-dropdown-menu]').forEach(m => { m.style.display = 'none'; });
+					document.querySelectorAll('[data-dropdown-toggle]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+					if (!isOpen) {
+						dropMenu.style.display = 'block';
+						dropToggle.setAttribute('aria-expanded', 'true');
+					}
+				});
+
+				dropToggle.setAttribute('data-dropdown-toggle', '');
+				dropMenu.setAttribute('data-dropdown-menu', '');
+
+				const closeOnEsc = (e) => {
+					if (e.key === 'Escape') {
+						dropMenu.style.display = 'none';
+						dropToggle.setAttribute('aria-expanded', 'false');
+						dropToggle.focus();
+					}
+				};
+				dropToggle.addEventListener('keydown', closeOnEsc);
+				dropMenu.addEventListener('keydown', closeOnEsc);
+
+				dropWrapper.appendChild(dropToggle);
+				dropWrapper.appendChild(dropMenu);
+				autreCell.appendChild(dropWrapper);
+
+				// Confirmation: status + send button
+				const confCell = row.insertCell();
+				confCell.style.textAlign = 'center';
+				confCell.style.whiteSpace = 'nowrap';
+
+				const confStatus = document.createElement('span');
+				confStatus.textContent = rec['isConfirmationSent'] ? '✓' : '✗';
+				confStatus.style.fontWeight = 'bold';
+				confStatus.style.color = rec['isConfirmationSent'] ? 'green' : 'red';
+				confStatus.style.marginRight = '4px';
+				confCell.appendChild(confStatus);
+
+				const confBtn = document.createElement('button');
+				confBtn.innerHTML = `<svg class="icon" aria-hidden="true" style="width:16px;height:16px;fill:#333"><use xlink:href="#check"></use></svg>`;
+				confBtn.title = 'Envoyer confirmation';
+				confBtn.style.cursor = 'pointer';
+				confBtn.style.padding = '2px 4px';
+				confBtn.addEventListener('click', async () => {
+					if (!confirm(`Envoyer confirmation à ${rec['Email']} ?`)) return;
+					await sendEmailWebhook({ type: 'confirmation', prenom: prenom || '', nom: nom || '', email: rec['Email'] || '', dateStage: rec['Date_du_stage'] || '', id: rec.id, entryID: rec.Entry_ID }, rec.id, 'isConfirmationSent', true);
+					eventRenderTable();
+				});
+				confCell.appendChild(confBtn);
+				const rapCell = row.insertCell();
+				rapCell.style.textAlign = 'center';
+				rapCell.style.whiteSpace = 'nowrap';
+
+				const rapStatus = document.createElement('span');
+				rapStatus.textContent = rec['isRapportMade'] ? '✓' : '✗';
+				rapStatus.style.fontWeight = 'bold';
+				rapStatus.style.color = rec['isRapportMade'] ? 'green' : 'red';
+				rapStatus.style.marginRight = '4px';
+				rapCell.appendChild(rapStatus);
+
+				const rapBtn = document.createElement('button');
+				rapBtn.innerHTML = `<svg class="icon" aria-hidden="true" style="width:16px;height:16px;fill:#333"><use xlink:href="#file"></use></svg>`;
+				rapBtn.title = 'Remplire le fichier rapport-de-stage et sauvgarder sur grist';
+				rapBtn.style.cursor = 'pointer';
+				rapBtn.style.padding = '2px 4px';
+				rapBtn.addEventListener('click', async () => {
 					const confirmSend = confirm(`Ouvrir la page du rapport ?`);
 					if (confirmSend) {
 						const rapportDeStageDataFromGrist = await grist.docApi.fetchTable("Rapport_de_stage");
