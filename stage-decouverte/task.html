@@ -580,7 +580,30 @@
 						window.addEventListener('message', onMessage);
 					}
 				});
-				actionsCell.appendChild(jsonRapportBtn);
+				rapCell.appendChild(rapBtn);
+
+				const attCell = row.insertCell();
+				attCell.style.textAlign = 'center';
+				attCell.style.whiteSpace = 'nowrap';
+
+				const attStatus = document.createElement('span');
+				attStatus.textContent = rec['isRapportSent'] ? '✓' : '✗';
+				attStatus.style.fontWeight = 'bold';
+				attStatus.style.color = rec['isRapportSent'] ? 'green' : 'red';
+				attStatus.style.marginRight = '4px';
+				attCell.appendChild(attStatus);
+
+				const attBtn = document.createElement('button');
+				attBtn.innerHTML = `<svg class="icon" aria-hidden="true" style="width:16px;height:16px;fill:#333"><use xlink:href="#award"></use></svg>`;
+				attBtn.title = 'Envoyer rapport et attestation';
+				attBtn.style.cursor = 'pointer';
+				attBtn.style.padding = '2px 4px';
+				attBtn.addEventListener('click', async () => {
+					if (!confirm(`Envoyer rapport et attestation à ${rec['Email']} ?`)) return;
+					await sendEmailWebhook({ type: 'rapport', prenom: prenom || '', nom: nom || '', email: rec['Email'] || '', dateStage: rec['Date_du_stage'] || '', id: rec.id, entryID: rec.Entry_ID }, rec.id, 'isRapportSent', true);
+					eventRenderTable();
+				});
+				attCell.appendChild(attBtn);
 			}
 		}
 		// filter records by using the name input and the date input
