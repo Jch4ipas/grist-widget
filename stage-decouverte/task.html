@@ -56,6 +56,7 @@
 	<script>
 		const WEBHOOK_URL_EMAIL = "https://n8n.fsd.epfl.ch/webhook/631a3f12-3b64-4853-84da-79774b057273";
 		const WEBHOOK_URL_CONTACT = "https://n8n.fsd.epfl.ch/webhook/687fa994-84c4-47ea-b2f4-b20efd472130";
+		const WEBHOOK_URL_SMS = "https://n8n.fsd.epfl.ch/webhook/d42886c4-a140-420a-905f-0af622ab5091";
 		const targetUrl = 'https://rapport-de-stage.fsd.epfl.ch/rapport-de-stage/responsable';
 
 		const searchInput = document.getElementById('searchInput');
@@ -323,9 +324,9 @@
 				dropMenu.setAttribute('role', 'menu');
 
 				const subActions = [
-					{ label: 'Révocation', type: 'revocation', fieldName: 'isRevocationSent', icon: 'x-circle', needConfirm: true },
-					{ label: 'Rappel SMS', type: 'rappel-sms', fieldName: 'isRappelSmsSent', icon: 'message-circle', needConfirm: false },
-					{ label: 'Rappel Mail', type: 'rappel-mail', fieldName: 'isRappelMailSent', icon: 'mail', needConfirm: false }
+					{ label: 'Rappel SMS', type: 'rappel-sms', fieldName: 'isRappelSmsSent', icon: 'message-circle', needConfirm: false }
+					// { label: 'Révocation', type: 'revocation', fieldName: 'isRevocationSent', icon: 'x-circle', needConfirm: true },
+					// { label: 'Rappel Mail', type: 'rappel-mail', fieldName: 'isRappelMailSent', icon: 'mail', needConfirm: false }
 				];
 
 				subActions.forEach(action => {
@@ -358,7 +359,7 @@
 					sendBtn.addEventListener('click', async (e) => {
 						e.stopPropagation();
 						if (action.needConfirm && !confirm(`Confirmer la révocation pour ${prenom} ${nom} ?`)) return;
-						await sendEmailWebhook({ type: action.type, prenom: prenom || '', nom: nom || '', email: rec['Email'] || '', dateStage: rec['Date_du_stage'] || '', id: rec.id, entryID: rec.Entry_ID }, rec.id, action.fieldName, true);
+						await sendSmsWebhook({ type: action.type, prenom: prenom || '', nom: nom || '', email: rec['Email'] || '', dateStage: rec['Date_du_stage'] || '', id: rec.id, entryID: rec.Entry_ID, telephone: rec.telephone }, rec.id, action.fieldName, true);
 						dropMenu.style.display = 'none';
 						dropToggle.setAttribute('aria-expanded', 'false');
 						eventRenderTable();
