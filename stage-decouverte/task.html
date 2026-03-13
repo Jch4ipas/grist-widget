@@ -98,6 +98,28 @@
 				alert('Erreur de connexion au webhook');
 			}
 		}
+
+		async function sendSmsWebhook(body, recordId_updateFieldInGrist, fieldName_updateFieldInGrist, value_updateFieldInGrist) {
+			try {
+				const response = await fetch(WEBHOOK_URL_SMS, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify(body)
+				});
+
+				if (response.ok) {
+					await updateFieldInGrist(recordId_updateFieldInGrist, fieldName_updateFieldInGrist, value_updateFieldInGrist);
+				} else {
+					alert('Erreur lors de l\'envoi de l\'email');
+				}
+			} catch (error) {
+				console.error('Erreur webhook:', error);
+				alert('Erreur de connexion au webhook');
+			}
+		}
+		
 		// Triggers a webhook in n8n that displays a view of current trainees in the table and sends the view to Telegram
 		async function sendContactWebhook(body) {
 			try {
