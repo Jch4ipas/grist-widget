@@ -47,17 +47,31 @@
 				<use xlink:href="#icon-mail-plane"></use>
 			</svg>
 		</div>
+		<div class="my-1" style="position: relative; max-width: 300px;">
+			<input type="file" id="csv-file" accept=".csv" title="Upload les données qui vienne de WPForm"
+				style="padding-left: 30px; box-sizing: border-box;">
+			<svg class="icon" aria-hidden="true"
+				style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; pointer-events: none;">
+				<use xlink:href="#upload"></use>
+			</svg>
+		</div>
 		<div>
 			<table id="table" class="table table-boxed"></table>
 		</div>
 	</div>
 
 	<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 	<script>
-		const WEBHOOK_URL_EMAIL = "https://n8n.fsd.epfl.ch/webhook/631a3f12-3b64-4853-84da-79774b057273";
-		const WEBHOOK_URL_CONTACT = "https://n8n.fsd.epfl.ch/webhook/687fa994-84c4-47ea-b2f4-b20efd472130";
-		const WEBHOOK_URL_SMS = "https://n8n.fsd.epfl.ch/webhook/d42886c4-a140-420a-905f-0af622ab5091";
-		const targetUrl = 'https://rapport-de-stage.fsd.epfl.ch/rapport-de-stage/responsable';
+		const WEBHOOK_URL_EMAIL = "https://n8n.fsd.epfl.ch/webhook-test/12e17ecb-6b77-4d3e-9b69-c2ab5aa0f63d";
+		const WEBHOOK_URL_CONTACT = "https://n8n.fsd.epfl.ch/webhook-test/687fa994-84c4-47ea-b2f4-b20efd472130";
+		const WEBHOOK_URL_SMS = "https://n8n.fsd.epfl.ch/webhook-test/d42886c4-a140-420a-905f-0af622ab5091";
+		const targetUrl = 'http://localhost:3000/rapport-de-stage/responsable';
+
+		// const WEBHOOK_URL_EMAIL = "https://n8n.fsd.epfl.ch/webhook/631a3f12-3b64-4853-84da-79774b057273";
+		// const WEBHOOK_URL_CONTACT = "https://n8n.fsd.epfl.ch/webhook/687fa994-84c4-47ea-b2f4-b20efd472130";
+		// const WEBHOOK_URL_SMS = "https://n8n.fsd.epfl.ch/webhook/d42886c4-a140-420a-905f-0af622ab5091";
+		// const targetUrl = 'https://rapport-de-stage.fsd.epfl.ch/rapport-de-stage/responsable';
 
 		const searchInput = document.getElementById('searchInput');
 		const dateInput = document.getElementById('dateInput');
@@ -119,7 +133,7 @@
 				alert('Erreur de connexion au webhook');
 			}
 		}
-		
+
 		// Triggers a webhook in n8n that displays a view of current trainees in the table and sends the view to Telegram
 		async function sendContactWebhook(body) {
 			try {
@@ -187,6 +201,151 @@
 				return '';
 			}
 		}
+
+		const RENAME_MAP = {
+			"Préférences de date de stage: Février 2026": "Fevrier_2026",
+			"Préférences de date de stage: Mars 2026": "Mars_2026",
+			"Préférences de date de stage: Avril 2026 (modified)": "Avril_2026",
+			"Préférences de date de stage: Mardi 04 mars 2025 (modified)": "Mardi_04_mars_2025_modified_",
+			"Préférences de date de stage: Octobre 2025 (modified)": "Octobre_2025_modified_",
+			"Préférences de date de stage: Novembre 2025 (modified)": "Novembre_2025_modified_",
+			"Préférences de date de stage: Décembre 2025 (modified)": "Decembre_2025",
+			"Préférences de date de stage: Janvier 2026 (modified)": "Janvier_2026",
+			"Préférences de date de stage: Autre (indiquez vos préférences)": "Preferences_de_date_de_stage_Autre",
+			"Autres préférences de date de stage": "Autres_preferences_de_date_de_stage",
+			"Prénom et nom: First": "Prenom",
+			"Prénom et nom: Last": "Nom",
+			"Adresse: Address Line 1": "Adresse_Address_Line_1",
+			"Adresse: Address Line 2": "Adresse_Address_Line_2",
+			"Adresse: City": "Adresse_City",
+			"Adresse: State": "Adresse_State",
+			"Adresse: Zip/Postal Code": "Adresse_Zip_Postal_Code",
+			"Adresse: Country": "Adresse_Country",
+			"Majorité": "Majorite",
+			"Date de naissance": "Date_de_naissance",
+			"Email": "Email",
+			"Téléphone mobile": "Telephone_mobile",
+			"Prénom et nom représentant·e légal·e: First": "Prenom_et_nom_representant_e_legal_e_First",
+			"Prénom et nom représentant·e légal·e: Last": "Prenom_et_nom_representant_e_legal_e_Last",
+			"Téléphone mobile représentant·e légal·e": "Telephone_mobile_representant_e_legal_e",
+			"Email représentant·e légal·e": "Email_representant_e_legal_e",
+			"Ma situation": "Ma_situation",
+			"Précisions situation": "Precisions_situation",
+			"École ou établissement": "Ecole_ou_etablissement",
+			"Voie / Niveau / Option": "Voie_Niveau_Option",
+			"Motivation et objectifs du stage": "Motivation_et_objectifs_du_stage",
+			"Documents facultatifs de type CV, lettre de motivation, ...: File #1": "Documents_facultatifs_de_type_CV_lettre_de_motivation_File_1",
+			"Documents facultatifs de type CV_1, lettre de motivation_1, ...: File #2": "Documents_facultatifs_de_type_CV_lettre_de_motivation_File_2",
+			"Documents facultatifs de type CV_2, lettre de motivation_2, ...: File #3": "Documents_facultatifs_de_type_CV_lettre_de_motivation_File_3",
+			"Documents facultatifs de type CV_3, lettre de motivation_3, ...: File #4": "Documents_facultatifs_de_type_CV_lettre_de_motivation_File_4",
+			"Je cherche un stage parce que...": "Raison_du_stage",
+			"Précisions raison": "Precisions_raison",
+			"De quelle manière avez-vous découvert que l'EPFL proposait des stages découverte / d'orientation ?": "Decouverte_du_stage",
+			"Si vous le souhaitez, vous pouvez ajouter un complément à votre réponse ci-dessous": "Complement_decouverte_du_stage",
+			"Commentaires ou autres précisions": "Commentaires_ou_autres_precisions",
+			"Droit à l'image": "Droit_a_l_image",
+			"Traitement des données personnelles": "Traitement_des_donnees_personnelles",
+			"Entry ID": "Entry_ID",
+			"Entry Date": "Date_d_envoi_du_formulaire",
+			"Entry Notes": "Entry_Notes",
+			"Type": "Type",
+			"Viewed": "Viewed",
+			"User Agent": "User_Agent",
+			"User IP": "User_IP",
+			"Unique Generated User ID": "Unique_Generated_User_ID",
+			"Payment Status": "Payment_Status",
+			"Starred": "Stagiaire_connu_",
+			"Droit à l'image": "Droit_a_l_image",
+			"Droit à l'image_1": "Droit_a_l_image2",
+			"Profession": "Profession"
+		};
+		async function handleCSVUpload(csvData) {
+			try {
+				const TABLE_NAME = 'Extraction_WPForms';
+				const formattedCsvData = csvData.map(row => {
+					const brokenKey = Object.keys(row).find(k => k.includes("Droit") && k.includes("Traitement"));
+					if (brokenKey) {
+						const valeurReponse = row[brokenKey];
+						row["Droit à l'image_1"] = valeurReponse;
+					}
+					if (
+						row["Entry Date"] &&
+						row["Entry Date"].trim() !== "" &&
+						!isNaN(row["Entry Date"]) &&
+						row["Entry ID"] &&
+						row["Entry ID"].includes("consens")
+					) {
+						row["Traitement des données personnelles"] = row["Entry ID"];
+						row["Entry ID"] = row["Entry Date"];
+						row["Entry Date"] = row["Entry Notes"];
+						row["Entry Notes"] = row["Type"];
+						row["Type"] = row["Viewed"];
+						row["Viewed"] = row["Starred"];
+						row["Starred"] = row["User Agent"];
+					}
+					const newRow = {};
+					for (let key in row) {
+						if (RENAME_MAP[key]) {
+							newRow[RENAME_MAP[key]] = row[key];
+						}
+					}
+					return newRow;
+				});
+				console.log(formattedCsvData);
+				const existingData = await grist.docApi.fetchTable(TABLE_NAME);
+				const existingEntryIds = new Set(
+					(existingData.Entry_ID || []).map(id => String(id))
+				);
+				const rowsToAdd = formattedCsvData.filter(row => {
+					if (!row.Entry_ID) return false;
+
+					const currentIdText = String(row.Entry_ID);
+					return !existingEntryIds.has(currentIdText);
+				});
+				if (rowsToAdd.length === 0) {
+					alert("Aucune nouvelle ligne à ajouter. Tous les Entry_ID sont déjà dans Grist.");
+					return;
+				}
+				const columnsForGrist = {};
+				const allKeys = new Set();
+				rowsToAdd.forEach(row => Object.keys(row).forEach(k => allKeys.add(k)));
+
+				allKeys.forEach(key => {
+					columnsForGrist[key] = rowsToAdd.map(row => row[key] !== undefined ? row[key] : "");
+				});
+				const actions = [[
+					'BulkAddRecord',
+					TABLE_NAME,
+					rowsToAdd.map(() => null),
+					columnsForGrist
+				]];
+
+				await grist.docApi.applyUserActions(actions);
+				alert(`${rowsToAdd.length} nouvelle(s) ligne(s) importée(s) avec succès !`);
+
+			} catch (error) {
+				console.error("Erreur lors de l'import :", error);
+				alert("Une erreur est survenue. Vérifie la console de ton navigateur pour plus de détails.");
+			}
+		}
+		document.getElementById('csv-file').addEventListener('change', () => {
+			const fileInput = document.getElementById('csv-file');
+			if (!fileInput.files.length) {
+				alert("Veuillez d'abord sélectionner un fichier CSV.");
+				return;
+			}
+			Papa.parse(fileInput.files[0], {
+				header: true,
+				skipEmptyLines: true,
+				complete: async function (results) {
+					console.log("Lecture brute par PapaParse :", results.data[0]);
+
+					const csvData = results.data;
+					await handleCSVUpload(csvData);
+				}
+			});
+		});
+
 		// display a table of people using an array of people as a parameter
 		function renderTable(records) {
 			const table = document.getElementById('table');
