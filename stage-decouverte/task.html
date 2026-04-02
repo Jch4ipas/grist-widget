@@ -746,11 +746,28 @@
 								case 'sendPdf':
 									try {
 										const rapportPdfInDataUrl = event.data.payload.pdfRapportInDataUrlBase64;
-										await updateFieldInGrist(rec.id, "rapportPDF", rapportPdfInDataUrl);
-										console.log(rapportPdfInDataUrl);
-										window.removeEventListener('message', onMessage);
-										await updateFieldInGrist(rec.id, "isRapportMade", true);
-										eventRenderTable();
+										const regex = /^data:([^;,]+)/;
+										const dataType = rapportPdfInDataUrl.match(regex);
+										if ("application/pdf" == dataType[1]) {
+											await updateFieldInGrist(rec.id, "rapportPDF", rapportPdfInDataUrl);
+											console.log(rapportPdfInDataUrl);
+											window.removeEventListener('message', onMessage);
+											await updateFieldInGrist(rec.id, "isRapportMade", true);
+											console.log("Import successful")
+											eventRenderTable();
+										} else {
+											console.error(`[Import Error] Failed to fetch report from https://rapport-de-stage.fsd.epfl.ch/rapport-de-stage/responsable.\nExpected format: 'application/pdf'. Received format: '${dataType[1]}'.`);
+											alert(`Échec de l'importation du rapport.
+
+Le fichier récupéré n'est pas au format PDF (format reçu : ${dataType[1]}).
+
+Comment contourner ce problème :
+1. Retournez sur https://rapport-de-stage.fsd.epfl.ch/rapport-de-stage/responsable
+2. Exportez manuellement le fichier JSON.
+3. Revenez sur Grist et aller sur le rapport de la personne concerné et importer le json et sauvgarder.
+
+Note technique : Si le format affiché ci-dessus est "text/html", il s'agit probablement d'une page d'erreur interceptée par un pare-feu (ex: Cloudflare). Je vous conseille de vérifier l'état des services Grist (sur OS).`);
+										}
 									} catch (err) {
 										console.error("erreur lors de la récupération du pdf", err);
 									}
